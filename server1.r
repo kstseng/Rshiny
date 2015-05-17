@@ -1,6 +1,6 @@
 #rid = "ddb80380-f1b3-4f8e-8016-7ed9cba571d5"
 #datapath = paste("http://data.taipei/opendata/datalist/apiAccess?scope=resourceAquire
-# &rid=",rid,"&format=xml",sep="")
+                # &rid=",rid,"&format=xml",sep="")
 #runApp("C:/Users/user/Desktop/R_UI/shiny_ui")
 
 shinyServer(function(input, output) {
@@ -21,4 +21,5 @@ shinyServer(function(input, output) {
   
   
 })
+
 
