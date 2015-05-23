@@ -1,5 +1,6 @@
 library(shiny)
-
+load("allCateFrame.RData")
+uniCat <- unique(allCateFrame[, 1])
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
   
