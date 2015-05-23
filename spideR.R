@@ -2,6 +2,7 @@
 # install.packages("XML")
 library(RCurl)
 library(XML)
+library(jsonlite)
 # by 分類爬梳
 html = getURL(url = "http://data.taipei/opendata/datalist/listDataset")
 xml = htmlParse(html)
@@ -50,29 +51,77 @@ names(ridByCategory) <- allCatName
 ########
 ########
 ## by report from website
-report <- read.csv("C:\\Users\\David79.Tseng\\Dropbox\\HomeOffice\\report.csv")
+report <- read.csv("report.csv")
 allURL <- as.character(report[, 13])
 allName <- as.character(report[, 9])
-allCategory <- as.character(report[, 3])
-ridMapping <- matrix(0, ncol = 3, nrow = length(allURL))
-for (u in 1:length(allURL)){
-  print(u/length(allURL))
-  htmlBy = getURL(url = allURL[u])
-  xmlBy <- htmlParse(htmlBy)
-  XpathBy <- "//li[@class='resource-item']/a/@href"
-  hrefBy = xmlBy[XpathBy]
-  if (is.null(hrefBy)){
-    rid <- NA
-  }else{
-    rid <- strsplit(as.character(hrefBy), "rid=")[[1]][2]
-  }
+allCategory <- as.character(report[, 3]); uniCat <- unique(allCategory)
+ridByCat2 <- lapply(1:length(uniCat), function(u){
+  belong <- which(allCategory == uniCat[u])
+  urlBelong <- allURL[belong]
+  RID <- sapply(1:length(belong), function(b){
+    htmlBy = getURL(url = urlBelong[b])
+    xmlBy <- htmlParse(htmlBy)
+    XpathBy <- "//li[@class='resource-item']/a/@href"
+    hrefBy = xmlBy[XpathBy]
+    if (is.null(hrefBy)){
+      rid <- NA
+    }else{
+      rid <- strsplit(as.character(hrefBy), "rid=")[[1]][2]
+    }
+    return(rid)
+  })
+  outMat <- matrix(c(rep(uniCat[u], length(RID)), allName[belong], RID), ncol = 3)
+  colnames(outMat) <- c("category", "dataName", "rid")
+  return(outMat)
+})
+
+allCateMat <- do.call(rbind, ridByCat2)
+colnames(allCateMat) <- c("category", "dataName", "rid")
+allCateFrame <- as.data.frame(allCateMat)
+save(allCateFrame, file = "allCateFrame.RData")
+#### FDA hot data (20 datasets)
+fdaURL <- "http://data.fda.gov.tw/frontsite/data/DataAction.do?method=doList&groupType=rank&id=null&sort=null&rowCount=20"
+fdahtml = getURL(url = fdaURL)
+fdaxml <- htmlParse(fdahtml)
+Xpath = "//div[@class='dataset_div']/h3/a/@href"
+fdahref = fdaxml[Xpath]
+
+hotFdaUrl <- paste("http://data.fda.gov.tw/", as.character(fdahref), sep = "")
+fdaHotMat <- matrix(0, ncol = 2, nrow = length(hotFdaUrl))
+for (f in 1:length(hotFdaUrl)){
+  print(f)
+  urlHot <- hotFdaUrl[f]
+  hothtml <- getURL(url = urlHot)
+  hotxml <- htmlParse(hothtml)
+  Xpath = "//div[@class='format-box']/ul/li[@class='json']/a/@href"
+  hothref = hotxml[Xpath]
+  id <- strsplit(as.character(hothref), "\\InfoId=|\\&logType=")[[1]][2:3]
+  jsonURL <- paste("http://data.fda.gov.tw/cacheData/", id[1], "_", id[2], ".json", sep = "")
   #
-  #   XpathByDataName = "//li[@class='active']/a[@class=' active']"
-  #   hrefByDataName = unlist(xpathApply(xmlBy, XpathByDataName, xmlValue))
-  ridMapping[u, ] <- c(allName[u], allCategory[u], rid)
+  Xpath = "//div[@class='datascont_mobile']/h2/text()"
+  hotName = hotxml[Xpath]
+  name <- sapply(hotName, xmlValue)
+  fdaHotMat[f, ] <- c(name, jsonURL)
 }
+fdaHotMat
 
-
+# ridMapping <- matrix(0, ncol = 3, nrow = length(allURL))
+# for (u in 1:length(allURL)){
+#   print(u/length(allURL))
+#   htmlBy = getURL(url = allURL[u])
+#   xmlBy <- htmlParse(htmlBy)
+#   XpathBy <- "//li[@class='resource-item']/a/@href"
+#   hrefBy = xmlBy[XpathBy]
+#   if (is.null(hrefBy)){
+#     rid <- NA
+#   }else{
+#     rid <- strsplit(as.character(hrefBy), "rid=")[[1]][2]
+#   }
+#   #
+#   #   XpathByDataName = "//li[@class='active']/a[@class=' active']"
+#   #   hrefByDataName = unlist(xpathApply(xmlBy, XpathByDataName, xmlValue))
+#   ridMapping[u, ] <- c(allName[u], allCategory[u], rid)
+# }
 
 ###
 # html = getURL(url = "http://data.taipei/opendata/datalist/listDataset")
@@ -97,8 +146,3 @@ for (u in 1:length(allURL)){
 # }
 # 
 # class(allDataName[[2]])
-
-
-
-
-
