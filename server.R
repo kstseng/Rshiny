@@ -1,5 +1,5 @@
 library(shiny)
-
+load("allCateFrame.RData")
 shinyServer(function(input, output, session){
   observe({
     if (input$category != "") {
